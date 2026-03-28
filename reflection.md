@@ -63,13 +63,18 @@ A second tradeoff involves the **conflict detection** algorithm. The current imp
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+I used AI tools throughout every phase of this project:
+
+- **Design brainstorming** — I started by describing the PawPal+ scenario to AI and asked it to suggest classes, attributes, and relationships. This helped me quickly draft the initial UML diagram with Owner, Pet, Task, and Scheduler classes. The most helpful prompts were specific ones like *"What attributes should a Task class have for a pet care scheduling app?"* rather than vague ones like *"Help me design an app."*
+- **Code generation** — After finalizing the UML, I used AI to generate Python class stubs and then iteratively fill in the logic. Asking the AI to implement one method at a time (e.g., *"Write the `_fit_tasks` method that greedily fills a time budget"*) kept changes small and reviewable.
+- **Debugging** — When tests failed, I pasted the error traceback and asked AI to diagnose the issue. It was especially helpful for catching off-by-one errors in the conflict detection loop and for identifying missing edge-case handling.
+- **Refactoring** — After the initial implementation worked, I asked AI to review the code for simplification opportunities. It suggested combining redundant loops and improving method signatures.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+One moment where I did not accept an AI suggestion was when it proposed adding a **DailyPlan** class to wrap the scheduler output. The AI generated a full class with attributes like `scheduled_tasks`, `dropped_tasks`, and `utilization_pct`, along with a `to_dict()` method. I evaluated this by considering whether the extra class added meaningful behavior or just wrapped a dictionary. Since the dictionary already conveyed all the needed information and the DailyPlan class had no real logic beyond getters, I rejected the suggestion and kept the simpler dictionary return. I verified this decision by confirming that all tests and the UI worked perfectly with the dictionary approach.
+
+I also questioned an AI suggestion to add type-checking `isinstance()` guards in every method. After reviewing Python best practices (duck typing, EAFP), I decided explicit type checks were unnecessary overhead for this project and kept the code clean.
 
 ---
 
@@ -77,13 +82,27 @@ A second tradeoff involves the **conflict detection** algorithm. The current imp
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+The test suite includes 18 automated tests covering:
+
+- **Core scheduling** — `generate_plan()` correctly sorts by priority, fits tasks into the time budget, and reports utilization. Tasks that exceed the budget are dropped.
+- **Sorting** — `sort_by_time()` orders tasks chronologically by their HH:MM time, with unscheduled tasks placed last. Also tested with all-unscheduled tasks to ensure no errors.
+- **Filtering** — `filter_tasks()` correctly filters by pet name, by status (pending/completed), and by both criteria combined. Returns empty lists when no matches exist.
+- **Recurrence** — Marking a daily task complete returns a new pending copy with auto-renewal notes. Marking a once-only task complete returns `None`.
+- **Conflict detection** — Two tasks at the same time produce one warning. Three tasks at the same time produce three pairwise warnings. A pet with no tasks produces zero conflicts.
+- **CRUD operations** — Adding a task increases the pet's task count. Removing by name decreases it; removing a nonexistent name returns `False`.
+- **Validation** — Creating a Task with an invalid category raises `ValueError`.
+
+These tests are important because they verify the algorithmic correctness of the scheduling logic (the core value of the app) and guard against regressions when adding new features like recurring tasks or conflict detection.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+I am highly confident that the scheduler works correctly for the supported scenarios. The tests cover the happy path, boundary conditions (zero tasks, budget exactly filled), and error cases (invalid input). The greedy algorithm is deterministic, so the same inputs always produce the same output.
+
+Edge cases I would test next with more time:
+- Tasks with identical priority *and* identical duration (tie-breaking behavior)
+- Very large numbers of tasks (performance)
+- Duration-aware overlap detection (e.g., a 30-min task at 08:00 overlapping a task at 08:15)
+- Concurrent mark-complete calls on the same recurring task
 
 ---
 
@@ -91,12 +110,15 @@ A second tradeoff involves the **conflict detection** algorithm. The current imp
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+I am most satisfied with the **greedy scheduling algorithm and conflict detection system**. The priority-based greedy approach is simple enough to understand and explain, yet powerful enough to make genuinely useful scheduling decisions. Seeing the scheduler correctly drop low-priority tasks when time runs out — while always keeping critical medication tasks — was a satisfying confirmation that the algorithm matches real-world pet care priorities. The conflict detection, while simple (exact time match), adds a practical safety layer that catches the most common scheduling mistake.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+If I had another iteration, I would improve two things:
+
+1. **Duration-aware overlap detection** — The current conflict detection only flags exact time matches. A smarter version would calculate time windows (start time + duration) and detect any overlapping intervals. This would catch cases like a 30-minute walk at 08:00 conflicting with grooming at 08:15.
+2. **Interactive UI for task editing** — Currently tasks can only be added and marked complete. I would add inline editing (change duration, priority, or time) and drag-and-drop reordering so owners can manually adjust the schedule after the algorithm generates it.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+The most important thing I learned is that **AI collaboration works best when you maintain clear ownership of design decisions**. AI is excellent at generating code, suggesting patterns, and catching bugs — but the human must decide *what* to build and *why*. When I let AI drive the architecture (like the DailyPlan class suggestion), it added unnecessary complexity. When I used AI as a tool within my own design framework — asking it to implement specific methods or review specific choices — the results were consistently better. The key is to treat AI as a skilled pair programmer, not an architect: give it clear specifications and evaluate its output critically.

@@ -1,28 +1,21 @@
 # PawPal+ (Module 2 Project)
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+**PawPal+** is a Streamlit app that helps pet owners plan and schedule daily care tasks for their pets.
 
-## Scenario
+## Features
 
-A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
+- **Priority-based greedy scheduling** — Tasks are sorted by priority (1 = critical → 5 = nice-to-have) and packed into the owner's daily time budget. Critical tasks like medication always get scheduled first.
+- **Chronological time sorting** — Tasks with an assigned time (HH:MM) are displayed in chronological order so owners can follow their day at a glance.
+- **Task filtering by pet and status** — Filter the task list by pet name, completion status (pending/completed), or both to quickly find what you need.
+- **Recurring task auto-renewal** — Daily and weekly tasks automatically create a new pending copy when marked complete, so recurring care never falls off the schedule.
+- **Time conflict detection** — The scheduler warns when two or more tasks are booked at the same time, helping owners avoid double-booking.
+- **Multi-pet support** — Manage tasks for multiple pets under one owner profile; the scheduler considers all pets when building the daily plan.
 
-- Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
-- Consider constraints (time available, priority, owner preferences)
-- Produce a daily plan and explain why it chose that plan
+## Demo
 
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
+![PawPal+ Demo](pawpal_demo.png)
 
-## What you will build
-
-Your final app should:
-
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
-
-## Getting started
+## Getting Started
 
 ### Setup
 
@@ -32,16 +25,11 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Smarter Scheduling
+### Run the app
 
-PawPal+ includes an algorithmic scheduling layer with four features:
-
-- **Sort by scheduled time** — Tasks can have an optional `time` (HH:MM format). The scheduler sorts tasks chronologically, placing unscheduled tasks at the end.
-- **Filter by pet or status** — Retrieve tasks filtered by pet name, completion status (`"pending"` / `"completed"`), or both.
-- **Recurring task auto-renewal** — Tasks can have a `frequency` of `"daily"` or `"weekly"`. When a recurring task is marked complete, a new pending copy is automatically created for the next occurrence.
-- **Time conflict detection** — The scheduler scans all tasks and warns when two or more tasks are scheduled at the exact same time.
-
-## Testing PawPal+
+```bash
+streamlit run app.py
+```
 
 ### Run the tests
 
@@ -49,13 +37,15 @@ PawPal+ includes an algorithmic scheduling layer with four features:
 python -m pytest
 ```
 
-### Run the demo
+### Run the demo script
 
 ```bash
 python main.py
 ```
 
-### What the tests cover
+## Testing
+
+The test suite includes 18 tests covering:
 
 - **Mark complete** — verifies `mark_complete()` flips status to completed
 - **Add task** — confirms adding a task increases the pet's task count
@@ -70,9 +60,11 @@ python main.py
 - **Remove task** — removing by name decreases count; missing name returns `False`
 - **Invalid category** — creating a Task with a bad category raises `ValueError`
 
-**Confidence:** The test suite covers core scheduling behaviors (sorting, filtering, recurrence, conflicts), basic CRUD operations, and edge cases (empty inputs, invalid data, multi-way conflicts).
+## UML Diagram
 
-### Suggested workflow
+See [pawpal_class_diagram.md](pawpal_class_diagram.md) for the full Mermaid class diagram, or `uml_final.png` for the exported image.
+
+## Suggested Workflow
 
 1. Read the scenario carefully and identify requirements and edge cases.
 2. Draft a UML diagram (classes, attributes, methods, relationships).

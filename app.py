@@ -1,5 +1,6 @@
 import streamlit as st
-from pawpal_system import Owner, Pet, Task, Scheduler, VALID_CATEGORIES
+import pandas as pd
+from pawpal_system import Owner, Pet, Task, Scheduler, VALID_CATEGORIES, VALID_FREQUENCIES
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -64,29 +65,87 @@ else:
             with col1:
                 task_name = st.text_input("Task name", value="Morning walk")
                 category = st.selectbox("Category", sorted(VALID_CATEGORIES))
+                time_input = st.text_input("Time (HH:MM, optional)", value="")
             with col2:
                 duration = st.number_input("Duration (min)", min_value=1, max_value=240, value=20)
                 priority = st.slider("Priority (1=critical, 5=nice-to-have)", 1, 5, 3)
+                frequency = st.selectbox("Frequency", sorted(VALID_FREQUENCIES))
             notes = st.text_input("Notes (optional)", value="")
             add_task = st.form_submit_button("Add task")
             if add_task and task_name:
                 selected_pet.add_task(
-                    Task(task_name, category, int(duration), priority, notes)
+                    Task(task_name, category, int(duration), priority, notes,
+                         time=time_input, frequency=frequency)
                 )
                 st.rerun()
 
-        # Show current tasks for selected pet
+        # Show current tasks in a table
         tasks = selected_pet.get_tasks()
         if tasks:
             st.write(f"**{selected_pet.name}'s tasks:**")
-            for t in tasks:
-                status = "✅" if t.completed else "⬜"
-                st.write(f"{status} {t.name} — {t.duration_minutes} min, "
-                         f"priority {t.priority}, {t.category}")
+            task_rows = []
+            for idx, t in enumerate(tasks):
+                task_rows.append({
+                    "Status": "✅" if t.completed else "⬜",
+                    "Name": t.name,
+                    "Duration": f"{t.duration_minutes} min",
+                    "Priority": t.priority,
+                    "Category": t.category,
+                    "Time": t.time or "—",
+                    "Frequency": t.frequency,
+                })
+            st.table(pd.DataFrame(task_rows))
+
+            # Mark complete buttons
+            st.write("**Mark tasks complete:**")
+            for idx, t in enumerate(tasks):
+                if not t.completed:
+                    if st.button(f"Complete: {t.name}", key=f"complete_{selected_pet.name}_{idx}"):
+                        renewal = t.mark_complete()
+                        if renewal:
+                            selected_pet.add_task(renewal)
+                            st.toast(f"Recurring task '{t.name}' renewed!")
+                        else:
+                            st.toast(f"'{t.name}' marked complete!")
+                        st.rerun()
         else:
             st.info(f"No tasks for {selected_pet.name} yet.")
 
-        # ── Step 4: Generate schedule ────────────────────────────────
+        # ── Step 4: Filter tasks ───────────────────────────────────────
+        st.divider()
+        st.subheader("Filter Tasks")
+
+        filter_col1, filter_col2 = st.columns(2)
+        with filter_col1:
+            filter_pet = st.selectbox("Filter by pet", ["All"] + pet_names, key="filter_pet")
+        with filter_col2:
+            filter_status = st.selectbox("Filter by status", ["All", "Pending", "Completed"], key="filter_status")
+
+        try:
+            scheduler = Scheduler(owner)
+            pet_filter = None if filter_pet == "All" else filter_pet
+            status_filter = None if filter_status == "All" else filter_status.lower()
+            filtered = scheduler.filter_tasks(pet_name=pet_filter, status=status_filter)
+
+            if filtered:
+                filter_rows = []
+                for t in filtered:
+                    filter_rows.append({
+                        "Status": "✅" if t.completed else "⬜",
+                        "Name": t.name,
+                        "Duration": f"{t.duration_minutes} min",
+                        "Priority": t.priority,
+                        "Category": t.category,
+                        "Time": t.time or "—",
+                        "Frequency": t.frequency,
+                    })
+                st.table(pd.DataFrame(filter_rows))
+            else:
+                st.info("No tasks match the current filters.")
+        except ValueError:
+            st.info("Add at least one pet to use filters.")
+
+        # ── Step 5: Generate schedule ──────────────────────────────────
         st.divider()
         st.subheader("Daily Schedule")
 
@@ -94,6 +153,61 @@ else:
             try:
                 scheduler = Scheduler(owner)
                 plan = scheduler.generate_plan()
-                st.text(plan["explanation"])
+
+                # Utilization metric
+                st.metric(
+                    "Time Utilization",
+                    f"{plan['utilization_pct']:.0f}%",
+                    f"{plan['total_minutes_used']} of {plan['total_minutes_available']} min used",
+                )
+
+                # Scheduled tasks table
+                if plan["scheduled_tasks"]:
+                    st.subheader("Scheduled Tasks")
+                    sched_rows = []
+                    for i, t in enumerate(plan["scheduled_tasks"], 1):
+                        sched_rows.append({
+                            "#": i,
+                            "Name": t.name,
+                            "Duration": f"{t.duration_minutes} min",
+                            "Priority": t.priority,
+                            "Category": t.category,
+                            "Time": t.time or "—",
+                        })
+                    st.table(pd.DataFrame(sched_rows))
+
+                # Dropped tasks warning
+                if plan["dropped_tasks"]:
+                    st.warning("**Dropped tasks** (not enough time):")
+                    for t in plan["dropped_tasks"]:
+                        st.warning(f"  ↳ {t.name} — {t.duration_minutes} min (priority {t.priority})")
+
+                # Sorted by time
+                all_scheduled = plan["scheduled_tasks"]
+                if all_scheduled:
+                    sorted_tasks = scheduler.sort_by_time(all_scheduled)
+                    st.subheader("Sorted by Time")
+                    time_rows = []
+                    for t in sorted_tasks:
+                        time_rows.append({
+                            "Time": t.time or "—",
+                            "Name": t.name,
+                            "Duration": f"{t.duration_minutes} min",
+                            "Priority": t.priority,
+                            "Category": t.category,
+                        })
+                    st.table(pd.DataFrame(time_rows))
+
+                # Conflict detection
+                conflicts = scheduler.detect_conflicts()
+                if conflicts:
+                    st.subheader("Scheduling Conflicts")
+                    for c in conflicts:
+                        st.warning(c)
+                else:
+                    st.success("No scheduling conflicts detected!")
+
+                st.success("Schedule generated successfully!")
+
             except ValueError as e:
                 st.error(str(e))
