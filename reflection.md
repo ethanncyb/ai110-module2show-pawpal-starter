@@ -6,12 +6,12 @@
 
 My UML design includes four classes (see [pawpal_class_diagram.md](pawpal_class_diagram.md) for the full Mermaid diagram):
 
-- **Task** — Represents a single care activity (e.g., walk, feeding, medication). Each task has a name, category, duration, priority, and optional notes. This is the core unit of work the scheduler operates on.
+- **Task** — Represents a single care activity (e.g., walk, feeding, medication). Each task has a name, category, duration, priority, optional notes, and a completion status. The `mark_complete()` method lets the owner check off finished tasks.
 - **Pet** — Stores the pet's name, species, and any special needs. Holds a list of Tasks with methods to add, remove, and filter them.
-- **Owner** — Stores the owner's name and total available time per day. Holds a reference to one Pet. Responsible for holding the time constraint that the scheduler uses.
-- **Scheduler** — Takes an Owner (with a Pet and Tasks), sorts tasks by priority, fits them into the time budget, and returns a plan dictionary with scheduled tasks, dropped tasks, utilization, and a human-readable explanation.
+- **Owner** — Stores the owner's name and total available time per day. Manages **multiple pets** via `add_pet()` and `get_pets()`. Responsible for holding the time constraint that the scheduler uses.
+- **Scheduler** — Takes an Owner (with one or more Pets and their Tasks), gathers tasks from all pets, sorts by priority, fits them into the time budget, and returns a plan dictionary with scheduled tasks, dropped tasks, utilization, and a human-readable explanation.
 
-Relationships: An Owner has one Pet. A Pet has many Tasks. The Scheduler reads constraints from the Owner and produces a plan.
+Relationships: An Owner has many Pets. A Pet has many Tasks. The Scheduler reads constraints from the Owner and produces a plan.
 
 **Core user actions:**
 
@@ -23,14 +23,15 @@ Relationships: An Owner has one Pet. A Pet has many Tasks. The Scheduler reads c
 
 **b. Design changes**
 
-Yes, the design changed during implementation. Originally I considered a fifth class, **DailyPlan**, to hold the scheduler's output (scheduled tasks, dropped tasks, utilization, and an explanation). However, I decided to keep the design simpler with only four classes. Instead of a separate DailyPlan class, the Scheduler's `generate_plan()` method returns a plain dictionary containing the scheduled tasks, dropped tasks, minutes used, utilization percentage, and a human-readable explanation string. This keeps the codebase leaner — a dedicated class was not necessary when a dictionary conveys the same information without extra overhead.
+Yes, the design changed during implementation based on AI review and task requirements:
 
-After asking AI to review my skeleton (`pawpal_system.py`), it flagged two minor points:
+1. **DailyPlan removed** — Originally I considered a fifth class, **DailyPlan**, to hold the scheduler's output. I decided to keep the design simpler — the Scheduler's `generate_plan()` returns a plain dictionary instead. A dedicated class was not necessary when a dictionary conveys the same information without extra overhead.
 
-1. **Duplicate task names** — `Pet.remove_task()` matches by name, but nothing prevents two tasks from sharing the same name. If duplicates exist, only the first match is removed. I kept this as-is for simplicity since in practice a pet owner is unlikely to create two identically named tasks.
-2. **Pet reassignment after Scheduler init** — The Scheduler checks that `owner.pet` is not `None` at construction time, but if the pet were reassigned to `None` afterwards, `generate_plan()` would crash. This is an acceptable tradeoff because the Scheduler is meant to be short-lived: create it, generate a plan, and discard it.
+2. **Multi-pet support added** — The initial design had Owner holding a single Pet (`set_pet`/`get_pet`). After reviewing task requirements, I changed Owner to manage a **list of pets** (`add_pet`/`get_pets`) and updated the Scheduler to gather tasks from all pets before scheduling. This better reflects real life — many owners have more than one pet.
 
-Neither issue warranted a code change, but documenting them shows awareness of the design's limits.
+3. **Task completion tracking added** — The original Task class had no way to mark a task as done. I added a `completed` attribute (defaults to `False`) and a `mark_complete()` method so the UI can track which tasks the owner has finished.
+
+After asking AI to review the skeleton, it also flagged one minor point: `Pet.remove_task()` matches by name with no uniqueness enforcement, so if duplicates exist only the first is removed. I kept this as-is for simplicity.
 
 See the full class diagram: [pawpal_class_diagram.md](pawpal_class_diagram.md)
 

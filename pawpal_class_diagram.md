@@ -5,10 +5,10 @@ classDiagram
     class Owner {
         +str name
         +int available_minutes
-        +Pet pet
+        +list~Pet~ pets
         +__init__(name: str, available_minutes: int)
-        +set_pet(pet: Pet) None
-        +get_pet() Pet
+        +add_pet(pet: Pet) None
+        +get_pets() list~Pet~
     }
 
     class Pet {
@@ -29,7 +29,9 @@ classDiagram
         +int duration_minutes
         +int priority
         +str notes
+        +bool completed
         +__init__(name: str, category: str, duration_minutes: int, priority: int, notes: str)
+        +mark_complete() None
         +__repr__() str
     }
 
@@ -41,7 +43,7 @@ classDiagram
         -_fit_tasks(sorted_tasks: list~Task~, available: int) tuple
     }
 
-    Owner "1" --> "1" Pet : owns
+    Owner "1" --> "*" Pet : owns
     Pet "1" --> "*" Task : has
     Scheduler --> Owner : reads constraints from
     Scheduler ..> Task : sorts and fits
