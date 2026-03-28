@@ -3,6 +3,7 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import pytest
 from pawpal_system import Task, Pet, Owner, Scheduler
 
 
@@ -181,8 +182,6 @@ def test_remove_task_from_pet():
 
 def test_invalid_category_raises():
     """Creating a Task with an invalid category should raise ValueError."""
-    import pytest
-
     with pytest.raises(ValueError):
         Task("Bad task", "swimming", 10)
 
@@ -248,3 +247,69 @@ def test_suggest_time_exact_fit():
     # 30-min gap from 07:00–07:30
     slots = scheduler.suggest_time(30)
     assert "07:00" in slots
+
+
+# ── JSON persistence tests ───────────────────────────────────────────
+
+
+def test_round_trip_save_load(tmp_path):
+    """Owner with pets/tasks should survive a save/load round trip."""
+    owner = Owner("Alice", 90)
+    pet = Pet("Buddy", "dog", "arthritic")
+    pet.add_task(Task("Walk", "exercise", 30, priority=1, time="08:00", frequency="daily"))
+    pet.add_task(Task("Feed", "feeding", 10, notes="wet food"))
+    owner.add_pet(pet)
+    owner.add_pet(Pet("Whiskers", "cat"))
+
+    filepath = tmp_path / "data.json"
+    owner.save_to_json(str(filepath))
+    loaded = Owner.load_from_json(str(filepath))
+
+    assert loaded.name == "Alice"
+    assert loaded.available_minutes == 90
+    assert len(loaded.pets) == 2
+    assert loaded.pets[0].name == "Buddy"
+    assert loaded.pets[0].special_needs == "arthritic"
+    assert len(loaded.pets[0].tasks) == 2
+    t = loaded.pets[0].tasks[0]
+    assert t.name == "Walk"
+    assert t.priority == 1
+    assert t.time == "08:00"
+    assert t.frequency == "daily"
+    assert loaded.pets[1].name == "Whiskers"
+    assert loaded.pets[1].tasks == []
+
+
+def test_completed_task_persists(tmp_path):
+    """A completed task should still be completed after save/load."""
+    owner = Owner("Alice", 60)
+    pet = Pet("Buddy", "dog")
+    task = Task("Walk", "exercise", 20)
+    task.mark_complete()
+    pet.add_task(task)
+    owner.add_pet(pet)
+
+    filepath = tmp_path / "data.json"
+    owner.save_to_json(str(filepath))
+    loaded = Owner.load_from_json(str(filepath))
+
+    assert loaded.pets[0].tasks[0].completed is True
+
+
+def test_empty_owner_round_trip(tmp_path):
+    """An owner with no pets should serialize and deserialize correctly."""
+    owner = Owner("Solo", 120)
+
+    filepath = tmp_path / "data.json"
+    owner.save_to_json(str(filepath))
+    loaded = Owner.load_from_json(str(filepath))
+
+    assert loaded.name == "Solo"
+    assert loaded.available_minutes == 120
+    assert loaded.pets == []
+
+
+def test_load_missing_file_raises():
+    """Loading from a nonexistent file should raise FileNotFoundError."""
+    with pytest.raises(FileNotFoundError):
+        Owner.load_from_json("/tmp/nonexistent_pawpal_data.json")

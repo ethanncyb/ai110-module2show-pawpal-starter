@@ -1,6 +1,9 @@
+import os
 import streamlit as st
 import pandas as pd
 from pawpal_system import Owner, Pet, Task, Scheduler, VALID_CATEGORIES, VALID_FREQUENCIES
+
+DATA_FILE = "data.json"
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -9,7 +12,10 @@ st.caption("A pet care planning assistant that schedules your day.")
 
 # ── Session state: persist Owner across reruns ───────────────────────
 if "owner" not in st.session_state:
-    st.session_state.owner = None
+    if os.path.exists(DATA_FILE):
+        st.session_state.owner = Owner.load_from_json(DATA_FILE)
+    else:
+        st.session_state.owner = None
 
 # ── Step 1: Owner profile ───────────────────────────────────────────
 st.subheader("Owner Profile")
@@ -23,10 +29,17 @@ if st.session_state.owner is None:
         submitted = st.form_submit_button("Create profile")
         if submitted:
             st.session_state.owner = Owner(owner_name, int(available))
+            st.session_state.owner.save_to_json(DATA_FILE)
             st.rerun()
 else:
     owner = st.session_state.owner
     st.success(f"Owner: **{owner.name}** — {owner.available_minutes} min/day")
+
+    if st.button("Reset data"):
+        if os.path.exists(DATA_FILE):
+            os.remove(DATA_FILE)
+        st.session_state.owner = None
+        st.rerun()
 
     # ── Step 2: Add pets ─────────────────────────────────────────────
     st.divider()
@@ -42,6 +55,7 @@ else:
         add_pet = st.form_submit_button("Add pet")
         if add_pet and pet_name:
             owner.add_pet(Pet(pet_name, species, special_needs))
+            owner.save_to_json(DATA_FILE)
             st.rerun()
 
     if owner.get_pets():
@@ -73,11 +87,15 @@ else:
             notes = st.text_input("Notes (optional)", value="")
             add_task = st.form_submit_button("Add task")
             if add_task and task_name:
-                selected_pet.add_task(
-                    Task(task_name, category, int(duration), priority, notes,
-                         time=time_input, frequency=frequency)
-                )
-                st.rerun()
+                try:
+                    selected_pet.add_task(
+                        Task(task_name, category, int(duration), priority, notes,
+                             time=time_input, frequency=frequency)
+                    )
+                    owner.save_to_json(DATA_FILE)
+                    st.rerun()
+                except ValueError:
+                    st.error("Invalid time format. Please use HH:MM (e.g. 08:30).")
 
         # Show current tasks in a table
         tasks = selected_pet.get_tasks()
@@ -107,6 +125,7 @@ else:
                             st.toast(f"Recurring task '{t.name}' renewed!")
                         else:
                             st.toast(f"'{t.name}' marked complete!")
+                        owner.save_to_json(DATA_FILE)
                         st.rerun()
         else:
             st.info(f"No tasks for {selected_pet.name} yet.")

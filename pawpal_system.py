@@ -4,6 +4,7 @@ Classes: Task, Pet, Owner, Scheduler
 Based on the PawPal+ UML class diagram.
 """
 
+import json
 import re
 from datetime import timedelta
 
@@ -62,6 +63,34 @@ class Task:
             )
         return None
 
+    def to_dict(self) -> dict:
+        """Serialize this task to a plain dictionary."""
+        return {
+            "name": self.name,
+            "category": self.category,
+            "duration_minutes": self.duration_minutes,
+            "priority": self.priority,
+            "notes": self.notes,
+            "time": self.time,
+            "frequency": self.frequency,
+            "completed": self.completed,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Task":
+        """Create a Task from a dictionary."""
+        task = cls(
+            name=d["name"],
+            category=d["category"],
+            duration_minutes=d["duration_minutes"],
+            priority=d.get("priority", 3),
+            notes=d.get("notes", ""),
+            time=d.get("time", ""),
+            frequency=d.get("frequency", "once"),
+        )
+        task.completed = d.get("completed", False)
+        return task
+
     def __repr__(self) -> str:
         """Return a developer-friendly string representation."""
         status = "done" if self.completed else "pending"
@@ -99,6 +128,27 @@ class Pet:
         """Return tasks filtered by category."""
         return [t for t in self.tasks if t.category == category]
 
+    def to_dict(self) -> dict:
+        """Serialize this pet to a plain dictionary."""
+        return {
+            "name": self.name,
+            "species": self.species,
+            "special_needs": self.special_needs,
+            "tasks": [t.to_dict() for t in self.tasks],
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Pet":
+        """Create a Pet from a dictionary."""
+        pet = cls(
+            name=d["name"],
+            species=d["species"],
+            special_needs=d.get("special_needs", ""),
+        )
+        for task_dict in d.get("tasks", []):
+            pet.add_task(Task.from_dict(task_dict))
+        return pet
+
 
 # ── Owner ────────────────────────────────────────────────────────────
 class Owner:
@@ -119,6 +169,36 @@ class Owner:
     def get_pets(self) -> list[Pet]:
         """Return the list of pets."""
         return self.pets
+
+    def to_dict(self) -> dict:
+        """Serialize this owner to a plain dictionary."""
+        return {
+            "name": self.name,
+            "available_minutes": self.available_minutes,
+            "pets": [p.to_dict() for p in self.pets],
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Owner":
+        """Create an Owner from a dictionary."""
+        owner = cls(
+            name=d["name"],
+            available_minutes=d["available_minutes"],
+        )
+        for pet_dict in d.get("pets", []):
+            owner.add_pet(Pet.from_dict(pet_dict))
+        return owner
+
+    def save_to_json(self, filepath: str) -> None:
+        """Write this owner's data to a JSON file."""
+        with open(filepath, "w") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @classmethod
+    def load_from_json(cls, filepath: str) -> "Owner":
+        """Read an Owner from a JSON file."""
+        with open(filepath) as f:
+            return cls.from_dict(json.load(f))
 
 
 # ── Scheduler ────────────────────────────────────────────────────────

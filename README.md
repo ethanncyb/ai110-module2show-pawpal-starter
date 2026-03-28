@@ -11,6 +11,7 @@
 - **Smart time suggestion** — Automatically suggests optimal available time slots for untimed tasks by scanning gaps in the daily schedule. Implemented using Claude Agent Mode per Challenge 1 requirements.
 - **Time conflict detection** — The scheduler warns when two or more tasks are booked at the same time, helping owners avoid double-booking.
 - **Multi-pet support** — Manage tasks for multiple pets under one owner profile; the scheduler considers all pets when building the daily plan.
+- **Data persistence** — Owner, pet, and task data is automatically saved to `data.json` and restored on restart so nothing is lost between sessions. Implemented using Claude Agent Mode per Challenge 2 requirements.
 
 ## Demo
 

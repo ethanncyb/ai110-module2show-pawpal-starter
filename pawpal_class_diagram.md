@@ -9,6 +9,10 @@ classDiagram
         +__init__(name: str, available_minutes: int)
         +add_pet(pet: Pet) None
         +get_pets() list~Pet~
+        +to_dict() dict
+        +from_dict(d: dict) Owner
+        +save_to_json(filepath: str) None
+        +load_from_json(filepath: str) Owner
     }
 
     class Pet {
@@ -21,6 +25,8 @@ classDiagram
         +remove_task(task_name: str) bool
         +get_tasks() list~Task~
         +get_tasks_by_category(category: str) list~Task~
+        +to_dict() dict
+        +from_dict(d: dict) Pet
     }
 
     class Task {
@@ -34,6 +40,8 @@ classDiagram
         +bool completed
         +__init__(name: str, category: str, duration_minutes: int, priority: int, notes: str, time: str, frequency: str)
         +mark_complete() Task | None
+        +to_dict() dict
+        +from_dict(d: dict) Task
         +__repr__() str
     }
 
