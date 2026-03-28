@@ -122,3 +122,96 @@ If I had another iteration, I would improve two things:
 **c. Key takeaway**
 
 The most important thing I learned is that **AI collaboration works best when you maintain clear ownership of design decisions**. AI is excellent at generating code, suggesting patterns, and catching bugs — but the human must decide *what* to build and *why*. When I let AI drive the architecture (like the DailyPlan class suggestion), it added unnecessary complexity. When I used AI as a tool within my own design framework — asking it to implement specific methods or review specific choices — the results were consistently better. The key is to treat AI as a skilled pair programmer, not an architect: give it clear specifications and evaluate its output critically.
+
+---
+
+## 6. Prompt Comparison — Multi-Model (Challenge 5)
+
+**Algorithmic task chosen:** Recurring task auto-renewal logic (`mark_complete()` method).
+
+When a daily or weekly task is marked complete, the system must automatically create a fresh pending copy so it reappears on the next schedule. This involves cloning the task with the same attributes, resetting completion status, and attaching a descriptive note about the renewal interval.
+
+### The Prompt (identical for both models)
+
+> I have a `Task` class in a pet-care scheduling app. Each task has: `name`, `category`, `duration_minutes`, `priority`, `notes`, `time` (HH:MM or None), `frequency` ("once", "daily", "weekly"), and `completed` (bool).
+>
+> Write a `mark_complete(self)` method that:
+> 1. Sets `self.completed = True`
+> 2. If the task is recurring (daily or weekly), returns a **new** Task clone with the same attributes but `completed=False` and an updated note indicating when it renews (e.g., "next in 1 day" or "next in 7 days")
+> 3. If the task is non-recurring ("once"), returns `None`
+>
+> Use Python type hints. Keep it concise and Pythonic.
+
+---
+
+### Claude's Response
+
+```python
+def mark_complete(self) -> "Task | None":
+    """Mark this task as completed. Returns a new Task if recurring, else None."""
+    self.completed = True
+    if self.frequency in ("daily", "weekly"):
+        delta = timedelta(days=1) if self.frequency == "daily" else timedelta(weeks=1)
+        return Task(
+            name=self.name,
+            category=self.category,
+            duration_minutes=self.duration_minutes,
+            priority=self.priority,
+            notes=f"(auto-renewed, next in {delta.days} day{'s' if delta.days != 1 else ''})",
+            time=self.time,
+            frequency=self.frequency,
+        )
+    return None
+```
+
+**Observations:**
+- Uses `timedelta` to compute the interval, making it easy to extend to other frequencies later.
+- Handles plural ("days" vs "day") in the note string.
+- Single exit point for `None` at the bottom — clean flow.
+- Concise: the entire method is ~12 lines.
+
+---
+
+### GPT-4's Response
+
+```python
+FREQUENCY_DAYS = {"daily": 1, "weekly": 7}
+
+def mark_complete(self) -> "Task | None":
+    """Mark complete and return a renewed copy for recurring tasks."""
+    self.completed = True
+    days = FREQUENCY_DAYS.get(self.frequency)
+    if days is None:
+        return None
+    return Task(
+        name=self.name,
+        category=self.category,
+        duration_minutes=self.duration_minutes,
+        priority=self.priority,
+        notes=f"(auto-renewed, next in {days} day{'s' if days != 1 else ''})",
+        time=self.time,
+        frequency=self.frequency,
+    )
+```
+
+**Observations:**
+- Extracts frequency-to-days mapping into a module-level constant (`FREQUENCY_DAYS`), which is more data-driven and extensible (adding "biweekly" = 14 is trivial).
+- Uses `dict.get()` to handle the non-recurring case — idiomatic Python, avoids an explicit `if/in` check.
+- Slightly more modular but introduces a module-level constant, which adds a small coupling concern.
+
+---
+
+### Comparison and Verdict
+
+| Criterion | Claude | GPT-4 |
+|-----------|--------|-------|
+| Correctness | ✅ Fully correct | ✅ Fully correct |
+| Readability | Clear `if/in` guard is easy to follow | `dict.get()` pattern is compact but slightly less obvious to beginners |
+| Extensibility | Would need another `elif` for new frequencies | Just add a key to the dictionary — more scalable |
+| Dependencies | Uses `timedelta` (standard library) | Uses a plain dict — no extra imports |
+| Pythonic style | Good — uses f-strings, type hints | Slightly more Pythonic — data-driven design |
+| Modularity | Self-contained method | Separates data (mapping) from logic (method) |
+
+**Winner: GPT-4 (by a narrow margin).** Both solutions are correct, concise, and well-typed. GPT-4's version is slightly more Pythonic because it separates the frequency-to-days mapping into data rather than branching logic. This makes it easier to extend (e.g., adding a "biweekly" frequency requires zero logic changes). However, Claude's version is arguably more readable for someone unfamiliar with the `dict.get()` pattern, and the `timedelta` usage makes the intent (a time interval) more explicit than a raw integer.
+
+In the final codebase, we used **Claude's approach** because the `timedelta` usage communicates intent clearly and our frequency options are unlikely to grow beyond two or three values, so the extensibility advantage is minimal in practice.
