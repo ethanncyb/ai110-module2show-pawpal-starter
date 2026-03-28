@@ -5,6 +5,14 @@ from pawpal_system import Owner, Pet, Task, Scheduler, VALID_CATEGORIES, VALID_F
 
 DATA_FILE = "data.json"
 
+def priority_label(p: int) -> str:
+    """Return an emoji + text label for a 1-3 priority value."""
+    return {
+        1: "🔴 1 High",
+        2: "🟡 2 Medium",
+        3: "🟢 3 Low",
+    }.get(p, str(p))
+
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
 st.title("🐾 PawPal+")
@@ -82,7 +90,7 @@ else:
                 time_input = st.text_input("Time (HH:MM, optional)", value="")
             with col2:
                 duration = st.number_input("Duration (min)", min_value=1, max_value=240, value=20)
-                priority = st.slider("Priority (1=critical, 5=nice-to-have)", 1, 5, 3)
+                priority = st.slider("Priority (1=high, 3=low)", 1, 3, 2)
                 frequency = st.selectbox("Frequency", sorted(VALID_FREQUENCIES))
             notes = st.text_input("Notes (optional)", value="")
             add_task = st.form_submit_button("Add task")
@@ -107,7 +115,7 @@ else:
                     "Status": "✅" if t.completed else "⬜",
                     "Name": t.name,
                     "Duration": f"{t.duration_minutes} min",
-                    "Priority": t.priority,
+                    "Priority": priority_label(t.priority),
                     "Category": t.category,
                     "Time": t.time or "—",
                     "Frequency": t.frequency,
@@ -153,7 +161,7 @@ else:
                         "Status": "✅" if t.completed else "⬜",
                         "Name": t.name,
                         "Duration": f"{t.duration_minutes} min",
-                        "Priority": t.priority,
+                        "Priority": priority_label(t.priority),
                         "Category": t.category,
                         "Time": t.time or "—",
                         "Frequency": t.frequency,
@@ -215,7 +223,7 @@ else:
                             "#": i,
                             "Name": t.name,
                             "Duration": f"{t.duration_minutes} min",
-                            "Priority": t.priority,
+                            "Priority": priority_label(t.priority),
                             "Category": t.category,
                             "Time": t.time or "—",
                         })
@@ -225,7 +233,7 @@ else:
                 if plan["dropped_tasks"]:
                     st.warning("**Dropped tasks** (not enough time):")
                     for t in plan["dropped_tasks"]:
-                        st.warning(f"  ↳ {t.name} — {t.duration_minutes} min (priority {t.priority})")
+                        st.warning(f"  ↳ {t.name} — {t.duration_minutes} min ({priority_label(t.priority)})")
 
                 # Sorted by time
                 all_scheduled = plan["scheduled_tasks"]
@@ -238,7 +246,7 @@ else:
                             "Time": t.time or "—",
                             "Name": t.name,
                             "Duration": f"{t.duration_minutes} min",
-                            "Priority": t.priority,
+                            "Priority": priority_label(t.priority),
                             "Category": t.category,
                         })
                     st.table(pd.DataFrame(time_rows))

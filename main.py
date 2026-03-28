@@ -6,13 +6,13 @@ from pawpal_system import Owner, Pet, Task, Scheduler
 owner = Owner("Alice", available_minutes=90)
 
 dog = Pet("Buddy", "dog", special_needs="bad knees")
-dog.add_task(Task("Brushing", "grooming", 15, priority=4, time="09:00"))
+dog.add_task(Task("Brushing", "grooming", 15, priority=3, time="09:00"))
 dog.add_task(Task("Heartworm pill", "medication", 5, priority=1, time="07:00"))
 dog.add_task(Task("Morning walk", "exercise", 20, priority=2, time="08:00"))
 
 cat = Pet("Whiskers", "cat")
 cat.add_task(Task("Breakfast", "feeding", 10, priority=1, time="08:00"))
-cat.add_task(Task("Puzzle toy", "enrichment", 20, priority=5))
+cat.add_task(Task("Puzzle toy", "enrichment", 20, priority=3))
 
 owner.add_pet(dog)
 owner.add_pet(cat)

@@ -31,8 +31,8 @@ class Task:
             raise ValueError(f"category must be one of {VALID_CATEGORIES}")
         if duration_minutes <= 0:
             raise ValueError("duration_minutes must be positive")
-        if not 1 <= priority <= 5:
-            raise ValueError("priority must be between 1 (critical) and 5 (nice-to-have)")
+        if not 1 <= priority <= 3:
+            raise ValueError("priority must be between 1 (high) and 3 (low)")
         if time and not re.match(r"^\d{2}:\d{2}$", time):
             raise ValueError("time must be in HH:MM format")
         if frequency not in VALID_FREQUENCIES:
