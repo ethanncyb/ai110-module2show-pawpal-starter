@@ -8,6 +8,7 @@
 - **Chronological time sorting** — Tasks with an assigned time (HH:MM) are displayed in chronological order so owners can follow their day at a glance.
 - **Task filtering by pet and status** — Filter the task list by pet name, completion status (pending/completed), or both to quickly find what you need.
 - **Recurring task auto-renewal** — Daily and weekly tasks automatically create a new pending copy when marked complete, so recurring care never falls off the schedule.
+- **Smart time suggestion** — Automatically suggests optimal available time slots for untimed tasks by scanning gaps in the daily schedule. Implemented using Claude Agent Mode per Challenge 1 requirements.
 - **Time conflict detection** — The scheduler warns when two or more tasks are booked at the same time, helping owners avoid double-booking.
 - **Multi-pet support** — Manage tasks for multiple pets under one owner profile; the scheduler considers all pets when building the daily plan.
 

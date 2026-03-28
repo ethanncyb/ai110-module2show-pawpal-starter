@@ -44,8 +44,11 @@ classDiagram
         +sort_by_time(tasks: list~Task~) list~Task~
         +filter_tasks(pet_name: str, status: str) list~Task~
         +detect_conflicts() list~str~
+        +suggest_time(duration: int, day_start: str, day_end: str) list~str~
         -_sort_by_priority(tasks: list~Task~) list~Task~
         -_fit_tasks(sorted_tasks: list~Task~, available: int) tuple
+        -_time_to_minutes(time_str: str) int
+        -_minutes_to_time(minutes: int) str
     }
 
     Owner "1" --> "*" Pet : owns

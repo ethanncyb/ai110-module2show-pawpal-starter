@@ -185,3 +185,66 @@ def test_invalid_category_raises():
 
     with pytest.raises(ValueError):
         Task("Bad task", "swimming", 10)
+
+
+# ── suggest_time tests ───────────────────────────────────────────────
+
+
+def _make_scheduler_with_tasks(tasks_for_pet: list[Task]) -> Scheduler:
+    """Helper: create an Owner/Pet/Scheduler with the given tasks."""
+    owner = Owner("Alice", 120)
+    pet = Pet("Buddy", "dog")
+    owner.add_pet(pet)
+    for t in tasks_for_pet:
+        pet.add_task(t)
+    return Scheduler(owner)
+
+
+def test_suggest_time_empty_schedule():
+    """An empty schedule should suggest day_start as the first slot."""
+    scheduler = _make_scheduler_with_tasks([])
+    slots = scheduler.suggest_time(30)
+    assert "06:00" in slots
+
+
+def test_suggest_time_one_task():
+    """One task at 08:00 (20 min) should suggest 06:00 and a slot at 08:20+."""
+    scheduler = _make_scheduler_with_tasks([
+        Task("Walk", "exercise", 20, time="08:00"),
+    ])
+    slots = scheduler.suggest_time(20)
+    assert "06:00" in slots
+    assert "08:20" in slots
+
+
+def test_suggest_time_back_to_back_no_gap():
+    """Back-to-back tasks with no gap should not suggest a slot between them."""
+    scheduler = _make_scheduler_with_tasks([
+        Task("Walk", "exercise", 60, time="06:00"),
+        Task("Feed", "feeding", 60, time="07:00"),
+    ])
+    slots = scheduler.suggest_time(30)
+    # No slot before 08:00 (both hours are occupied from 06:00–08:00)
+    assert "06:00" not in slots
+    assert "07:00" not in slots
+    assert "08:00" in slots
+
+
+def test_suggest_time_full_day():
+    """A fully packed day should return an empty list."""
+    scheduler = _make_scheduler_with_tasks([
+        Task("Block", "other", 960, time="06:00"),  # 06:00–22:00 = 960 min
+    ])
+    slots = scheduler.suggest_time(30)
+    assert slots == []
+
+
+def test_suggest_time_exact_fit():
+    """A task that fits exactly in a gap should be included."""
+    scheduler = _make_scheduler_with_tasks([
+        Task("Early", "exercise", 60, time="06:00"),   # 06:00–07:00
+        Task("Late", "exercise", 60, time="07:30"),     # 07:30–08:30
+    ])
+    # 30-min gap from 07:00–07:30
+    slots = scheduler.suggest_time(30)
+    assert "07:00" in slots

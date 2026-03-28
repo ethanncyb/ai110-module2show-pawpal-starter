@@ -223,3 +223,54 @@ class Scheduler:
                             f"Conflict: '{names[i]}' and '{names[j]}' are both at {time_slot}"
                         )
         return warnings
+
+    def suggest_time(self, duration: int, day_start: str = "06:00", day_end: str = "22:00") -> list[str]:
+        """Suggest available time slots that can fit a task of the given duration.
+
+        Scans gaps in the daily schedule across all pets and returns start times
+        (HH:MM) where the task would fit.
+        """
+        # Collect all timed tasks across all pets as (start, end) minute intervals
+        intervals: list[tuple[int, int]] = []
+        for pet in self.owner.pets:
+            for task in pet.get_tasks():
+                if task.time:
+                    start = self._time_to_minutes(task.time)
+                    intervals.append((start, start + task.duration_minutes))
+
+        start_bound = self._time_to_minutes(day_start)
+        end_bound = self._time_to_minutes(day_end)
+
+        # Sort intervals by start time
+        intervals.sort()
+
+        suggestions: list[str] = []
+        cursor = start_bound
+
+        for iv_start, iv_end in intervals:
+            # Skip intervals outside the day bounds
+            if iv_end <= start_bound or iv_start >= end_bound:
+                continue
+            # Gap before this interval
+            if iv_start > cursor and (iv_start - cursor) >= duration:
+                suggestions.append(self._minutes_to_time(cursor))
+            # Advance cursor past this interval
+            if iv_end > cursor:
+                cursor = iv_end
+
+        # Gap after the last interval
+        if (end_bound - cursor) >= duration:
+            suggestions.append(self._minutes_to_time(cursor))
+
+        return suggestions
+
+    @staticmethod
+    def _time_to_minutes(time_str: str) -> int:
+        """Convert HH:MM string to minutes since midnight."""
+        hours, minutes = time_str.split(":")
+        return int(hours) * 60 + int(minutes)
+
+    @staticmethod
+    def _minutes_to_time(minutes: int) -> str:
+        """Convert minutes since midnight to HH:MM string."""
+        return f"{minutes // 60:02d}:{minutes % 60:02d}"

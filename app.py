@@ -145,7 +145,33 @@ else:
         except ValueError:
             st.info("Add at least one pet to use filters.")
 
-        # ── Step 5: Generate schedule ──────────────────────────────────
+        # ── Step 5: Suggest available time slots ─────────────────────────
+        st.divider()
+        st.subheader("Suggest Time")
+
+        suggest_col1, suggest_col2 = st.columns(2)
+        with suggest_col1:
+            suggest_duration = st.number_input(
+                "Task duration (min)", min_value=1, max_value=240, value=20, key="suggest_dur"
+            )
+        with suggest_col2:
+            suggest_start = st.text_input("Day start (HH:MM)", value="06:00", key="suggest_start")
+            suggest_end = st.text_input("Day end (HH:MM)", value="22:00", key="suggest_end")
+
+        if st.button("Find available slots"):
+            try:
+                scheduler = Scheduler(owner)
+                slots = scheduler.suggest_time(int(suggest_duration), suggest_start, suggest_end)
+                if slots:
+                    st.info("Available slots for a **{} min** task:".format(suggest_duration))
+                    for slot in slots:
+                        st.write(f"  - {slot}")
+                else:
+                    st.warning("No available slots found for that duration.")
+            except ValueError as e:
+                st.error(str(e))
+
+        # ── Step 6: Generate schedule ──────────────────────────────────
         st.divider()
         st.subheader("Daily Schedule")
 
