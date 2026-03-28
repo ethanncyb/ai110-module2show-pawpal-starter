@@ -55,6 +55,8 @@ One key tradeoff is that the scheduler uses a **greedy priority-first** approach
 
 This tradeoff is reasonable because in pet care, skipping a critical task (like giving medication) to fit in two optional tasks (like extra grooming and a bonus walk) would be a bad outcome. The owner would rather miss a nice-to-have activity than forget something their pet genuinely needs. Safety and health come first, even if it means the schedule is not perfectly optimized for total minutes used.
 
+A second tradeoff involves the **conflict detection** algorithm. The current implementation only flags tasks with an **exact time match** — for example, two tasks both scheduled at "08:00". It does *not* consider task duration or overlapping time windows. This means a 20-minute task at "08:00" and a 15-minute task at "08:10" would **not** be flagged as conflicting, even though they overlap. I chose exact-match detection because it is simple and avoids requiring an end-time or duration-based interval calculation. For a pet-care app where most tasks are short and owners schedule them at round times, exact-match catches the most common mistake (double-booking a time slot). A future iteration could add duration-aware overlap detection for more precision.
+
 ---
 
 ## 3. AI Collaboration

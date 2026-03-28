@@ -4,7 +4,11 @@ Classes: Task, Pet, Owner, Scheduler
 Based on the PawPal+ UML class diagram.
 """
 
+import re
+from datetime import timedelta
+
 VALID_CATEGORIES = {"feeding", "exercise", "medication", "grooming", "enrichment", "other"}
+VALID_FREQUENCIES = {"once", "daily", "weekly"}
 
 
 # ── Task ─────────────────────────────────────────────────────────────
@@ -18,6 +22,8 @@ class Task:
         duration_minutes: int,
         priority: int = 3,
         notes: str = "",
+        time: str = "",
+        frequency: str = "once",
     ):
         """Create a task with validated category, duration, and priority."""
         if category not in VALID_CATEGORIES:
@@ -26,17 +32,35 @@ class Task:
             raise ValueError("duration_minutes must be positive")
         if not 1 <= priority <= 5:
             raise ValueError("priority must be between 1 (critical) and 5 (nice-to-have)")
+        if time and not re.match(r"^\d{2}:\d{2}$", time):
+            raise ValueError("time must be in HH:MM format")
+        if frequency not in VALID_FREQUENCIES:
+            raise ValueError(f"frequency must be one of {VALID_FREQUENCIES}")
 
         self.name = name
         self.category = category
         self.duration_minutes = duration_minutes
         self.priority = priority
         self.notes = notes
+        self.time = time
+        self.frequency = frequency
         self.completed = False
 
-    def mark_complete(self) -> None:
-        """Mark this task as completed."""
+    def mark_complete(self) -> "Task | None":
+        """Mark this task as completed. Returns a new Task if recurring, else None."""
         self.completed = True
+        if self.frequency in ("daily", "weekly"):
+            delta = timedelta(days=1) if self.frequency == "daily" else timedelta(weeks=1)
+            return Task(
+                name=self.name,
+                category=self.category,
+                duration_minutes=self.duration_minutes,
+                priority=self.priority,
+                notes=f"(auto-renewed, next in {delta.days} day{'s' if delta.days != 1 else ''})",
+                time=self.time,
+                frequency=self.frequency,
+            )
+        return None
 
     def __repr__(self) -> str:
         """Return a developer-friendly string representation."""
@@ -164,3 +188,38 @@ class Scheduler:
             else:
                 dropped.append(task)
         return scheduled, dropped, minutes_used
+
+    def sort_by_time(self, tasks: list[Task]) -> list[Task]:
+        """Sort tasks by scheduled time (HH:MM). Tasks without a time go last."""
+        return sorted(tasks, key=lambda t: (t.time == "", t.time))
+
+    def filter_tasks(self, pet_name: str | None = None, status: str | None = None) -> list[Task]:
+        """Filter tasks across all pets by pet name and/or completion status."""
+        results: list[Task] = []
+        for pet in self.owner.pets:
+            if pet_name and pet.name != pet_name:
+                continue
+            for task in pet.get_tasks():
+                if status == "completed" and not task.completed:
+                    continue
+                if status == "pending" and task.completed:
+                    continue
+                results.append(task)
+        return results
+
+    def detect_conflicts(self) -> list[str]:
+        """Return warnings for tasks scheduled at the same time."""
+        timed: dict[str, list[str]] = {}
+        for pet in self.owner.pets:
+            for task in pet.get_tasks():
+                if task.time:
+                    timed.setdefault(task.time, []).append(task.name)
+        warnings: list[str] = []
+        for time_slot, names in sorted(timed.items()):
+            if len(names) > 1:
+                for i in range(len(names)):
+                    for j in range(i + 1, len(names)):
+                        warnings.append(
+                            f"Conflict: '{names[i]}' and '{names[j]}' are both at {time_slot}"
+                        )
+        return warnings

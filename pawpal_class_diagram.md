@@ -29,9 +29,11 @@ classDiagram
         +int duration_minutes
         +int priority
         +str notes
+        +str time
+        +str frequency
         +bool completed
-        +__init__(name: str, category: str, duration_minutes: int, priority: int, notes: str)
-        +mark_complete() None
+        +__init__(name: str, category: str, duration_minutes: int, priority: int, notes: str, time: str, frequency: str)
+        +mark_complete() Task | None
         +__repr__() str
     }
 
@@ -39,6 +41,9 @@ classDiagram
         +Owner owner
         +__init__(owner: Owner)
         +generate_plan() dict
+        +sort_by_time(tasks: list~Task~) list~Task~
+        +filter_tasks(pet_name: str, status: str) list~Task~
+        +detect_conflicts() list~str~
         -_sort_by_priority(tasks: list~Task~) list~Task~
         -_fit_tasks(sorted_tasks: list~Task~, available: int) tuple
     }
