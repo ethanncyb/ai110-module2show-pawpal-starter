@@ -4,13 +4,27 @@
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+My UML design includes four classes (see [pawpal_class_diagram.md](pawpal_class_diagram.md) for the full Mermaid diagram):
+
+- **Task** — Represents a single care activity (e.g., walk, feeding, medication). Each task has a name, category, duration, priority, and optional notes. This is the core unit of work the scheduler operates on.
+- **Pet** — Stores the pet's name, species, and any special needs. Holds a list of Tasks with methods to add, remove, and filter them.
+- **Owner** — Stores the owner's name and total available time per day. Holds a reference to one Pet. Responsible for holding the time constraint that the scheduler uses.
+- **Scheduler** — Takes an Owner (with a Pet and Tasks), sorts tasks by priority, fits them into the time budget, and returns a plan dictionary with scheduled tasks, dropped tasks, utilization, and a human-readable explanation.
+
+Relationships: An Owner has one Pet. A Pet has many Tasks. The Scheduler reads constraints from the Owner and produces a plan.
+
+**Core user actions:**
+
+1. **Add a pet and owner profile** — The user enters basic information about themselves (name, time available) and their pet (name, species, any special needs). This grounds every other action in the app — tasks and schedules are meaningless without knowing *whose* pet we are planning for and how much time the owner has.
+
+2. **Add and edit care tasks** — The user creates care tasks such as walks, feeding, medication, grooming, or enrichment. Each task has at least a duration and a priority level. The user can also edit existing tasks to adjust these values. This is the primary way the owner communicates *what* needs to happen each day.
+
+3. **Generate a daily plan** — The user requests a schedule that fits their tasks into the available time, ordered by priority and respecting constraints. The app displays the resulting plan clearly and explains *why* it made the choices it did (e.g., why a high-priority medication task was scheduled before a lower-priority enrichment activity, or why a task was dropped if time ran out).
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+
+
 
 ---
 
