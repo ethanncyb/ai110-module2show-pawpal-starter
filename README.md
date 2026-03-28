@@ -10,6 +10,7 @@
 - **Recurring task auto-renewal** — Daily and weekly tasks automatically create a new pending copy when marked complete, so recurring care never falls off the schedule.
 - **Smart time suggestion** — Automatically suggests optimal available time slots for untimed tasks by scanning gaps in the daily schedule. Implemented using Claude Agent Mode per Challenge 1 requirements.
 - **Priority color-coding** — Tasks display emoji-coded priority labels (🔴 High → 🟢 Low) in all tables for quick visual scanning.
+- **Professional UI formatting** — Category emojis (🏃 Exercise, 💊 Medication, etc.), species icons for pets, color-coded status indicators (✅ Done / ⏳ Pending), and frequency badges improve readability at a glance.
 - **Time conflict detection** — The scheduler warns when two or more tasks are booked at the same time, helping owners avoid double-booking.
 - **Multi-pet support** — Manage tasks for multiple pets under one owner profile; the scheduler considers all pets when building the daily plan.
 - **Data persistence** — Owner, pet, and task data is automatically saved to `data.json` and restored on restart so nothing is lost between sessions. Implemented using Claude Agent Mode per Challenge 2 requirements.

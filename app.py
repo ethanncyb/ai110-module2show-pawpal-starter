@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-import pandas as pd
+from tabulate import tabulate
 from pawpal_system import Owner, Pet, Task, Scheduler, VALID_CATEGORIES, VALID_FREQUENCIES
 
 DATA_FILE = "data.json"
@@ -12,6 +12,38 @@ def priority_label(p: int) -> str:
         2: "🟡 2 Medium",
         3: "🟢 3 Low",
     }.get(p, str(p))
+
+CATEGORY_EMOJI = {
+    "exercise":   "🏃 Exercise",
+    "feeding":    "🍽️ Feeding",
+    "grooming":   "✂️ Grooming",
+    "medication": "💊 Medication",
+    "enrichment": "🧩 Enrichment",
+    "other":      "📋 Other",
+}
+
+FREQUENCY_EMOJI = {
+    "once":   "1️⃣ Once",
+    "daily":  "🔁 Daily",
+    "weekly": "📅 Weekly",
+}
+
+def category_label(c: str) -> str:
+    return CATEGORY_EMOJI.get(c, c)
+
+def frequency_label(f: str) -> str:
+    return FREQUENCY_EMOJI.get(f, f)
+
+def status_label(completed: bool) -> str:
+    return "✅ Done" if completed else "⏳ Pending"
+
+def render_table(rows: list[dict]) -> None:
+    """Render a list of row-dicts as a formatted table using tabulate."""
+    if not rows:
+        return
+    headers = rows[0].keys()
+    table_data = [[row[h] for h in headers] for row in rows]
+    st.markdown(tabulate(table_data, headers=headers, tablefmt="pipe"))
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -66,9 +98,11 @@ else:
             owner.save_to_json(DATA_FILE)
             st.rerun()
 
+    SPECIES_EMOJI = {"dog": "🐶", "cat": "🐱", "bird": "🐦", "rabbit": "🐰", "other": "🐾"}
     if owner.get_pets():
         for pet in owner.get_pets():
-            st.write(f"**{pet.name}** ({pet.species})"
+            emoji = SPECIES_EMOJI.get(pet.species, "🐾")
+            st.write(f"{emoji} **{pet.name}** ({pet.species})"
                      + (f" — {pet.special_needs}" if pet.special_needs else ""))
     else:
         st.info("No pets yet. Add one above.")
@@ -112,15 +146,15 @@ else:
             task_rows = []
             for idx, t in enumerate(tasks):
                 task_rows.append({
-                    "Status": "✅" if t.completed else "⬜",
+                    "Status": status_label(t.completed),
                     "Name": t.name,
                     "Duration": f"{t.duration_minutes} min",
                     "Priority": priority_label(t.priority),
-                    "Category": t.category,
+                    "Category": category_label(t.category),
                     "Time": t.time or "—",
-                    "Frequency": t.frequency,
+                    "Frequency": frequency_label(t.frequency),
                 })
-            st.table(pd.DataFrame(task_rows))
+            render_table(task_rows)
 
             # Mark complete buttons
             st.write("**Mark tasks complete:**")
@@ -158,15 +192,15 @@ else:
                 filter_rows = []
                 for t in filtered:
                     filter_rows.append({
-                        "Status": "✅" if t.completed else "⬜",
+                        "Status": status_label(t.completed),
                         "Name": t.name,
                         "Duration": f"{t.duration_minutes} min",
                         "Priority": priority_label(t.priority),
-                        "Category": t.category,
+                        "Category": category_label(t.category),
                         "Time": t.time or "—",
-                        "Frequency": t.frequency,
+                        "Frequency": frequency_label(t.frequency),
                     })
-                st.table(pd.DataFrame(filter_rows))
+                render_table(filter_rows)
             else:
                 st.info("No tasks match the current filters.")
         except ValueError:
@@ -224,10 +258,10 @@ else:
                             "Name": t.name,
                             "Duration": f"{t.duration_minutes} min",
                             "Priority": priority_label(t.priority),
-                            "Category": t.category,
+                            "Category": category_label(t.category),
                             "Time": t.time or "—",
                         })
-                    st.table(pd.DataFrame(sched_rows))
+                    render_table(sched_rows)
 
                 # Dropped tasks warning
                 if plan["dropped_tasks"]:
@@ -247,9 +281,9 @@ else:
                             "Name": t.name,
                             "Duration": f"{t.duration_minutes} min",
                             "Priority": priority_label(t.priority),
-                            "Category": t.category,
+                            "Category": category_label(t.category),
                         })
-                    st.table(pd.DataFrame(time_rows))
+                    render_table(time_rows)
 
                 # Conflict detection
                 conflicts = scheduler.detect_conflicts()
